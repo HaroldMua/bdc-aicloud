@@ -10,7 +10,6 @@ class host:
         self._user = user
         self._passwd = passwd
 
-
     # 判断以userid为名称的目录是否已经存在
     def path_exists(self, userid):
         try:
@@ -19,26 +18,11 @@ class host:
             ssh.connect(self._ip, int(self._port), username=self._user, password=self._passwd)
             sftp = ssh.open_sftp()
             sftp.stat("/fs/vg151748-Research/users/{userid}".format(userid=userid))
-            print("user dir already exists")
+            print("Fold {0} exist".format(userid))
             ssh.close()
             return True
         except IOError:
-            print("user dir not exists")
-            return False
-
-    # 以userid为名称，创建目录
-    def mkdir(self, userid):
-        try:
-            ssh = paramiko.SSHClient()
-            ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            ssh.connect(self._ip, int(self._port), username=self._user, password=self._passwd)
-            sftp = ssh.open_sftp()
-            sftp.mkdir("/fs/vg151748-Research/users/{userid}".format(userid=userid))
-            print("Create forld %s in remote hosts successfully!\n" % userid)
-            ssh.close()
-            return True
-        except:
-            print("Failed to create folder!\n")
+            print("Fold {0} not exist".format(userid))
             return False
 
     # 执行远程命令
@@ -58,16 +42,14 @@ class host:
             return False
 
 
-
-def nfs_dir_create(userid):
+def nfs_dir_remove(userid):
     info = host("ip", "port",  "username", "password")
 
     path_exists = info.path_exists(userid)
-    if not path_exists:
-        info.mkdir(userid)
-        # cmd = ["cp -r /fs/vg151748-Research/users/tom/* /fs/vg151748-Research/users/{userid}".format(userid=userid)]
-        # info.run(cmd)
-        return True
+    if path_exists:
+        cmd = ["rm -rf /fs/vg151748-Research/users/{userid}".format(userid=userid)]
+        info.run(cmd)
+        print("Delete forld %s in remote hosts successfully!" % userid)
 
 if __name__ == '__main__':
-    nfs_dir_create("jack")
+    nfs_dir_remove("jack")
