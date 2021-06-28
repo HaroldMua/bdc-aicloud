@@ -18,7 +18,7 @@ class host:
             ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             ssh.connect(self._ip, int(self._port), username=self._user, password=self._passwd)
             sftp = ssh.open_sftp()
-            sftp.stat("/fs/vg151748-Research/users/{userid}".format(userid=userid))
+            sftp.stat("/fs/vg151748-Research/{userid}".format(userid=userid))
             print("user dir already exists")
             ssh.close()
             return True
@@ -33,7 +33,7 @@ class host:
             ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             ssh.connect(self._ip, int(self._port), username=self._user, password=self._passwd)
             sftp = ssh.open_sftp()
-            sftp.mkdir("/fs/vg151748-Research/users/{userid}".format(userid=userid))
+            sftp.mkdir("/fs/vg151748-Research/{userid}".format(userid=userid))
             print("Create forld %s in remote hosts successfully!\n" % userid)
             ssh.close()
             return True
@@ -60,7 +60,7 @@ class host:
 
 
 def nfs_dir_create(userid):
-    info = host("ip", "port",  "username", "password")
+    info = host("172.17.33.178", "22",  "bdc_mh", "mohao!nas")
 
     path_exists = info.path_exists(userid)
     if not path_exists:
@@ -70,4 +70,4 @@ def nfs_dir_create(userid):
         return True
 
 if __name__ == '__main__':
-    nfs_dir_create("jack")
+    nfs_dir_create("rose")

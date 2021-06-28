@@ -17,7 +17,7 @@ class host:
             ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             ssh.connect(self._ip, int(self._port), username=self._user, password=self._passwd)
             sftp = ssh.open_sftp()
-            sftp.stat("/fs/vg151748-Research/users/{userid}".format(userid=userid))
+            sftp.stat("/fs/vg151748-Research/{userid}".format(userid=userid))
             print("Fold {0} exist".format(userid))
             ssh.close()
             return True
@@ -43,11 +43,11 @@ class host:
 
 
 def nfs_dir_remove(userid):
-    info = host("ip", "port",  "username", "password")
+    info = host("172.17.33.178", "22",  "bdc_mh", "mohao!nas")
 
     path_exists = info.path_exists(userid)
     if path_exists:
-        cmd = ["rm -rf /fs/vg151748-Research/users/{userid}".format(userid=userid)]
+        cmd = ["rm -rf /fs/vg151748-Research/{userid}".format(userid=userid)]
         info.run(cmd)
         print("Delete forld %s in remote hosts successfully!" % userid)
 
