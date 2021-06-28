@@ -3,13 +3,13 @@
 # ------------------------------------------------------------------
 # python        3.6    (apt)
 # jupyter       latest (pip)
-# jupyterlab    latest (pip)
-# mxnet         latest (pip)
-# paddle        latest (pip)
+# jupyterlab    2.1.4 (pip) can't use latest version, otherwise, jupyterlab can't redirect in url.
+# mxnet         1.8.0 (pip)
+# paddle        2.1.1 (pip)
 # pytorch       latest (pip)
-# tensorflow    latest (pip)
-# keras         latest (pip)
-# onnx          latest (pip)
+# tensorflow    2.5.0 (pip)
+# keras         2.3.1 (pip)
+# onnx          1.9.0 (pip)
 # opencv        4.5.2  (git)
 # ==================================================================
 
@@ -98,6 +98,47 @@ RUN APT_INSTALL="apt-get install -y --no-install-recommends" && \
         && \
 
 # ==================================================================
+# jupyterlab
+# ------------------------------------------------------------------
+
+    $PIP_INSTALL \
+        jupyterlab==2.1.4 \
+        # 降低jedi的版本,使得jupyterlab具备tab键代码自动补全功能
+        jedi==0.17.0 \
+        && \
+
+# ==================================================================
+# opencv
+# ------------------------------------------------------------------
+
+    DEBIAN_FRONTEND=noninteractive $APT_INSTALL \
+        libatlas-base-dev \
+        libgflags-dev \
+        libgoogle-glog-dev \
+        libhdf5-serial-dev \
+        libleveldb-dev \
+        liblmdb-dev \
+        libprotobuf-dev \
+        libsnappy-dev \
+        protobuf-compiler \
+        && \
+
+    $GIT_CLONE --branch 4.5.2 https://github.com/opencv/opencv ~/opencv && \
+    mkdir -p ~/opencv/build && cd ~/opencv/build && \
+    cmake -D CMAKE_BUILD_TYPE=RELEASE \
+          -D CMAKE_INSTALL_PREFIX=/usr/local \
+          -D WITH_IPP=OFF \
+          -D WITH_CUDA=OFF \
+          -D WITH_OPENCL=OFF \
+          -D BUILD_TESTS=OFF \
+          -D BUILD_PERF_TESTS=OFF \
+          -D BUILD_DOCS=OFF \
+          -D BUILD_EXAMPLES=OFF \
+          .. && \
+    make -j"$(nproc)" install && \
+    ln -s /usr/local/include/opencv4/opencv2 /usr/local/include/opencv2 && \
+
+# ==================================================================
 # mxnet
 # ------------------------------------------------------------------
 
@@ -162,52 +203,13 @@ RUN APT_INSTALL="apt-get install -y --no-install-recommends" && \
         && \
 
 # ==================================================================
-# jupyterlab
-# ------------------------------------------------------------------
-
-    $PIP_INSTALL \
-        jupyterlab \
-        && \
-
-# ==================================================================
 # keras
 # ------------------------------------------------------------------
 
     $PIP_INSTALL \
         h5py \
-        keras \
+        keras==2.3.1 \
         && \
-
-# ==================================================================
-# opencv
-# ------------------------------------------------------------------
-
-    DEBIAN_FRONTEND=noninteractive $APT_INSTALL \
-        libatlas-base-dev \
-        libgflags-dev \
-        libgoogle-glog-dev \
-        libhdf5-serial-dev \
-        libleveldb-dev \
-        liblmdb-dev \
-        libprotobuf-dev \
-        libsnappy-dev \
-        protobuf-compiler \
-        && \
-
-    $GIT_CLONE --branch 4.5.2 https://github.com/opencv/opencv ~/opencv && \
-    mkdir -p ~/opencv/build && cd ~/opencv/build && \
-    cmake -D CMAKE_BUILD_TYPE=RELEASE \
-          -D CMAKE_INSTALL_PREFIX=/usr/local \
-          -D WITH_IPP=OFF \
-          -D WITH_CUDA=OFF \
-          -D WITH_OPENCL=OFF \
-          -D BUILD_TESTS=OFF \
-          -D BUILD_PERF_TESTS=OFF \
-          -D BUILD_DOCS=OFF \
-          -D BUILD_EXAMPLES=OFF \
-          .. && \
-    make -j"$(nproc)" install && \
-    ln -s /usr/local/include/opencv4/opencv2 /usr/local/include/opencv2 && \
 
 # ==================================================================
 # config & cleanup
