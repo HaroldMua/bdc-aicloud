@@ -8,7 +8,6 @@
 # paddle        latest (pip)
 # pytorch       latest (pip)
 # tensorflow    latest (pip)
-# keras         2.3.1 (pip)
 # onnx          latest (pip)
 # opencv        4.5.2  (git)
 # ==================================================================
@@ -103,7 +102,7 @@ RUN APT_INSTALL="apt-get install -y --no-install-recommends" && \
 
     $PIP_INSTALL \
         jupyterlab==2.1.4 \
-        jedi==0.17.0 \
+        jedi==0.17.2 \
         && \
 
 # ==================================================================
@@ -205,10 +204,10 @@ RUN APT_INSTALL="apt-get install -y --no-install-recommends" && \
 # keras
 # ------------------------------------------------------------------
 
-    $PIP_INSTALL \
-        h5py \
-        keras==2.3.1 \
-        && \
+#    $PIP_INSTALL \
+#        h5py \
+#        keras==2.3.1 \
+#        && \
 
 # ==================================================================
 # config & cleanup

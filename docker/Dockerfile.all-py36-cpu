@@ -8,7 +8,6 @@
 # paddle        2.1.1 (pip)
 # pytorch       latest (pip)
 # tensorflow    2.5.0 (pip)
-# keras         2.3.1 (pip)
 # onnx          1.9.0 (pip)
 # opencv        4.5.2  (git)
 # ==================================================================
@@ -104,7 +103,7 @@ RUN APT_INSTALL="apt-get install -y --no-install-recommends" && \
     $PIP_INSTALL \
         jupyterlab==2.1.4 \
         # 降低jedi的版本,使得jupyterlab具备tab键代码自动补全功能
-        jedi==0.17.0 \
+        jedi==0.17.2 \
         && \
 
 # ==================================================================
@@ -206,10 +205,10 @@ RUN APT_INSTALL="apt-get install -y --no-install-recommends" && \
 # keras
 # ------------------------------------------------------------------
 
-    $PIP_INSTALL \
-        h5py \
-        keras==2.3.1 \
-        && \
+#    $PIP_INSTALL \
+#        h5py \
+#        keras==2.3.1 \
+#        && \
 
 # ==================================================================
 # config & cleanup
