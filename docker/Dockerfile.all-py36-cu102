@@ -1,15 +1,15 @@
 # ==================================================================
 # module list
 # ------------------------------------------------------------------
-# python        3.6    (apt)
-# jupyter       latest (pip)
+# python        3.6   (apt)
+# jupyter       1.0.0 (pip)
 # jupyterlab    2.1.4 (pip) can't use latest version, otherwise, jupyterlab can't redirect in url.
-# mxnet         latest (pip)
-# paddle        latest (pip)
-# pytorch       latest (pip)
-# tensorflow    latest (pip)
-# onnx          latest (pip)
-# opencv        4.5.2  (git)
+# mxnet         1.8.0 (pip)
+# paddle        2.1.1 (pip)
+# pytorch       1.10.0 (pip)
+# tensorflow    2.5.0 (pip)
+# onnx          1.9.0 (pip)
+# opencv        4.5.2 (git)
 # ==================================================================
 
 FROM nvidia/cuda:10.2-cudnn8-devel-ubuntu18.04
