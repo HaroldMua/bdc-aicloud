@@ -7,7 +7,7 @@
 #-------------------------------------------------------------------------------
 # base system
 
-FROM haroldmua/all-py36-cu102:v3 as system
+FROM haroldmua/all-py36-cu102:v1 as system
 
 # Need to comment the below line, otherwise it would lead to apt update failure.
 # RUN sed -i 's#http://archive.ubuntu.com/ubuntu/#mirror://mirrors.ubuntu.com/mirrors.txt#' /etc/apt/sources.list;
@@ -77,7 +77,7 @@ RUN apt update \
 #-------------------------------------------------------------------------------
 # builder
 
-FROM haroldmua/all-py36-cu102:v3 as builder
+FROM haroldmua/all-py36-cu102:v1 as builder
 
 # Need to comment the below line, otherwise it would lead to apt update failure.
 # RUN sed -i 's#http://archive.ubuntu.com/ubuntu/#mirror://mirrors.ubuntu.com/mirrors.txt#' /etc/apt/sources.list;
