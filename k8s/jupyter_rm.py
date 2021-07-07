@@ -31,7 +31,7 @@ def delete_ingress(namespace, username):
 
 def pod_status(namespace, username):
 
-    count = 100
+    count = 40
     while count > 0:
         try:
             core_v1_api = client.CoreV1Api()
@@ -47,7 +47,8 @@ def pod_status(namespace, username):
         count -= 1
         time.sleep(3)
 
-def delete_dl(username, namespace):
+def delete_dl(username, namespace="experiment-dl"):
+    username = username.lower()
     config.load_kube_config(config_file="config")
 
     delete_statefulset(namespace, username)
@@ -57,9 +58,7 @@ def delete_dl(username, namespace):
     return status
 
 if __name__ == '__main__':
-    mood = delete_dl(username="jack", namespace="aicloud")
-
+    # mood = delete_dl("jack")
+    mood = delete_dl("TEST")
     print(mood)
-
-
 

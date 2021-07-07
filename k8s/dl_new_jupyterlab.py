@@ -1,10 +1,8 @@
 from kubernetes import client, config
-from kubernetes.client.rest import ApiException
 from kubernetes.stream import stream
 import re
 import time
 import hashlib
-import pymysql
 
 
 def create_statefulset(namespace, username, image, resource, hash_code):
@@ -24,9 +22,7 @@ def create_statefulset(namespace, username, image, resource, hash_code):
     ]
 
     # command
-    # header_string = '{"headers": {"Content-Security-Policy": "frame-ancestors self http://*.*.*.*:3001;"}}'
-    header_string = '{"headers": {"Content-Security-Policy": "frame-ancestors self * http://aicloud.cuc.edu.cn http://localhost:3001 http://127.0.0.1:3001"}}'
-    # header_string = '{"headers": {"Content-Security-Policy": "frame-ancestors self * http://bdcdev.cuc.edu.cn http://localhost:3001 http://127.0.0.1:3001"}}'
+    header_string = '{"headers": {"Content-Security-Policy": "frame-ancestors self * http://aicloud.cuc.edu.cn"}}'
 
     command = [
         "/bin/sh",
@@ -60,19 +56,6 @@ def create_statefulset(namespace, username, image, resource, hash_code):
         effect="NoSchedule"
     )
 
-    # volume = client.V1Volume(
-    #     name="notebook",
-    #     empty_dir=client.V1EmptyDirVolumeSource()
-    # )
-
-    # volume = client.V1Volume(
-    #     name="notebook",
-    #     nfs=client.V1NFSVolumeSource(
-    #         server="172.17.33.155",
-    #         path="/mnt/file-storage/platform/{username}".format(username=username)
-    #     )
-    # )
-
     volume = client.V1Volume(
         name="notebook",
         nfs=client.V1NFSVolumeSource(
@@ -81,16 +64,28 @@ def create_statefulset(namespace, username, image, resource, hash_code):
         )
     )
 
-    template = client.V1PodTemplateSpec(
-        metadata=client.V1ObjectMeta(labels={"app": username}),
-        # when it comes to "containers", use "[]"
-        spec=client.V1PodSpec(
-            node_selector={"resource": resource},
-            volumes=[volume],
-            tolerations=[toleration],
-            containers=[container]
+    if resource == "gpu":
+        template = client.V1PodTemplateSpec(
+            metadata=client.V1ObjectMeta(labels={"app": username}),
+            # when it comes to "containers", use "[]"
+            spec=client.V1PodSpec(
+                # node_name="gpu09-tesla-p100",
+                node_selector={"resource": resource},
+                volumes=[volume],
+                tolerations=[toleration],
+                containers=[container]
+            )
         )
-    )
+    else:
+        template = client.V1PodTemplateSpec(
+            metadata=client.V1ObjectMeta(labels={"app": username}),
+            # when it comes to "containers", use "[]"
+            spec=client.V1PodSpec(
+                # node_name="bdcenter-k8s-worker9",
+                volumes=[volume],
+                containers=[container]
+            )
+        )
 
     spec = client.V1StatefulSetSpec(
         service_name=username,
@@ -193,7 +188,7 @@ def pod_status(namespace, username):
 
     core_v1_api = client.CoreV1Api()
 
-    count = 30
+    count = 100
     while count > 0:
         try:
             resp = core_v1_api.read_namespaced_pod(name=username + "-0", namespace=namespace)
@@ -206,7 +201,7 @@ def pod_status(namespace, username):
         count -= 1
         time.sleep(2)
     if resp.status.phase != "Running":
-        print('Not enough GPU!')
+        print('Failed to create jupyter!')
         return False
 
 
@@ -287,74 +282,16 @@ def get_jupyter_token(namespace, username):
         return jupyter_token
 
 
-class DB:
-    def __init__(self, host, port, user, password, db, charset):
-        self.connect = pymysql.connect(host=host, port=port, user=user, password=password, db=db, charset=charset)
-        self.cursor = self.connect.cursor()
-
-    def insert_data(self, table_name, userID, hash_code):
-        sql = """insert into {table_name}(
-        userID, hash_code)
-        values ('{userID}', '{hash_code}')""".format(table_name=table_name, userID=userID, hash_code=hash_code)
-
-        try:
-            self.cursor.execute(sql)
-            self.connect.commit()
-        except:
-            self.connect.rollback()
-
-    def query_data(self, table_name, userID):
-        sql = "select * from {table_name} where userID='{userID}';".format(table_name=table_name, userID=userID)
-
-        try:
-            self.cursor.execute(sql)
-            results = self.cursor.fetchall()
-            print(results)
-        except:
-            print("Error: unable to fetch data")
-
-    def query_privilege(self, table_name, userID):
-        sql = "select if (exists(select * from {table_name} where userID='{userID}' limit 1), 1, 0);".format(table_name=table_name, userID=userID)
-
-        try:
-            self.cursor.execute(sql)
-            results = self.cursor.fetchall()
-        except:
-            print("Error: unable to fetch data")
-        if results[0][0] == 1:
-            return True
-        else:
-            return False
-
-    def __del__(self):
-        self.cursor.close()
-        self.connect.close()
-
 # ==================================================================
 # dl_create
 # jupyter url: http://aicloud.cuc.edu.cn/ai/{hash_code}_jupyter/?token={jupyter_token}
-# vnc url: http://bdcdev.cuc.edu.cn/{hash_code}_vnc/static/vnc.html?resize=scale&autoconnect=true&path={hash_code}_vnc/websockify
 # vnc url: http://aicloud.cuc.edu.cn/ai/{hash_code}_vnc/
 # ------------------------------------------------------------------
 
-
-# def dl_create(username, namespace="research", resource="gpu", image="172.17.33.146:1180/dl-framework/haroldmua/all-py36-cpu-vnc:v1"):
-
-def dl_create(username, namespace="research", resource="gpu", image="172.17.33.146:1180/dl-framework/harold/deepo_vnc_vscode:all-jupyter-py36-cu101-v3"):
+def dl_create(username, namespace, resource, image):
 
     config.load_kube_config(config_file="config")
-
     hash_code = hashlib.md5(username.encode("utf-8")).hexdigest()
-
-
-    # db = DB(host='172.17.33.71', port=30802, user='root', password='123456', db='science_platform', charset='utf8')
-    # db.insert_data('user_hash', username, hash_code)
-    # db.query_data('user_hash', username)
-
-    # privilege = db.query_privilege('privilerged_user', username)
-    # if privilege:
-    #     resource = "privilege"
-    #     print(resource)
 
     sts_created = create_statefulset(namespace, username, image, resource, hash_code)
     svc_created = create_service(namespace, username)
@@ -371,9 +308,6 @@ def dl_create(username, namespace="research", resource="gpu", image="172.17.33.1
     return jupyter_token, hash_code
 
 if __name__ == '__main__':
-
-   mood = dl_create('rose')
-   # mood = dl_create('jack')
-   # mood = dl_create('json')
-
+   mood = dl_create(username='jack', namespace='aicloud', resource='cpu', image="172.17.33.146:1180/dl-framework/haroldmua/all-py36-cpu-vnc:v1")
+   # mood = dl_create(username='c', namespace='aicloud', resource='gpu', image="172.17.33.146:1180/dl-framework/haroldmua/all-py36-cu102-vnc:v1")
    print("jupyter_token: %s \nhash_code: %s" % (mood[0], mood[1]))
