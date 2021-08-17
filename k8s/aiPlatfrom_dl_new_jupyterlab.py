@@ -45,15 +45,11 @@ def create_statefulset(namespace, username, image, resource, hash_code):
         volume_mounts=[volume_mount],
         # when it comes to "ports", use "[]"
         ports=[client.V1ContainerPort(name="jupyter", container_port=8888)],
+        # 申请资源：2核CPU(2000毫核心），4GB内存
+        resources=client.V1ResourceRequirements(requests={"cpu": "2000m", "memory": "4000Mi"}),
         # resources=client.V1ResourceRequirements(limits={"aliyun.com/gpu-mem": "3"}),
         command=command,
         env=env
-    )
-
-    toleration = client.V1Toleration(
-        key="nvidia.com/gpu",
-        operator="Exists",
-        effect="NoSchedule"
     )
 
     volume = client.V1Volume(
@@ -65,6 +61,12 @@ def create_statefulset(namespace, username, image, resource, hash_code):
     )
 
     if resource == "gpu":
+        toleration = client.V1Toleration(
+            key="nvidia.com/gpu",
+            operator="Exists",
+            effect="NoSchedule"
+        )
+
         template = client.V1PodTemplateSpec(
             metadata=client.V1ObjectMeta(labels={"app": username}),
             # when it comes to "containers", use "[]"
