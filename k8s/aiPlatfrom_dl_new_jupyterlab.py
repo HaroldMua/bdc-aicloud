@@ -292,6 +292,8 @@ def get_jupyter_token(namespace, username):
 
 def dl_create(username, namespace, resource, image):
 
+    # config.load_incluster_config()
+
     config.load_kube_config(config_file="config")
     hash_code = hashlib.md5(username.encode("utf-8")).hexdigest()
 

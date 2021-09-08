@@ -48,6 +48,8 @@ def pod_status(namespace, username):
         time.sleep(3)
 
 def delete_dl(username, namespace):
+    # config.load_incluster_config()
+
     config.load_kube_config(config_file="config")
 
     delete_statefulset(namespace, username)
