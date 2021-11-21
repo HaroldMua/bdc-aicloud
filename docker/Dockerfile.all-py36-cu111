@@ -4,17 +4,16 @@
 # python        3.6   (apt)
 # jupyter       1.0.0 (pip)
 # jupyterlab    2.1.4 (pip) can't use latest version, otherwise, jupyterlab can't redirect in url.
-# mxnet         1.8.0 (pip)
-# paddle        2.0.0 (pip)
-# pytorch       1.10.0 (pip)
-# tensorflow    2.5.0 (pip)
-# onnx          1.9.0 (pip)
+# paddle        2.2.0 (pip)
+# pytorch       1.11.0 (pip)
+# tensorflow    2.6.2 (pip)
 # opencv        4.5.2 (git)
 # ==================================================================
 
 #FROM nvidia/cuda:10.1-cudnn7-devel-ubuntu18.04
 #FROM nvidia/cuda:10.2-cudnn8-devel-ubuntu18.04
 FROM nvidia/cuda:11.1-cudnn8-devel-ubuntu18.04
+
 ENV LANG C.UTF-8
 RUN APT_INSTALL="apt-get install -y --no-install-recommends" && \
     PIP_INSTALL="python -m pip --no-cache-dir install --upgrade" && \
@@ -139,37 +138,6 @@ RUN APT_INSTALL="apt-get install -y --no-install-recommends" && \
     ln -s /usr/local/include/opencv4/opencv2 /usr/local/include/opencv2 && \
 
 # ==================================================================
-# mxnet
-# ------------------------------------------------------------------
-
-    DEBIAN_FRONTEND=noninteractive $APT_INSTALL \
-        libatlas-base-dev \
-        graphviz \
-        && \
-
-    $PIP_INSTALL \
-        mxnet-cu110 \
-        graphviz \
-        && \
-
-# ==================================================================
-# onnx
-# ------------------------------------------------------------------
-
-#    DEBIAN_FRONTEND=noninteractive $APT_INSTALL \
-#        protobuf-compiler \
-#        libprotoc-dev \
-#        && \
-
-#    $PIP_INSTALL \
-#        --no-binary onnx onnx \
-#        && \
-
-#    $PIP_INSTALL \
-#        onnxruntime \
-#        && \
-
-# ==================================================================
 # paddle
 # ------------------------------------------------------------------
 
@@ -201,15 +169,6 @@ RUN APT_INSTALL="apt-get install -y --no-install-recommends" && \
     $PIP_INSTALL \
         tensorflow-gpu \
         && \
-
-# ==================================================================
-# keras
-# ------------------------------------------------------------------
-
-#    $PIP_INSTALL \
-#        h5py \
-#        keras==2.3.1 \
-#        && \
 
 # ==================================================================
 # config & cleanup
