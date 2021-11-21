@@ -7,7 +7,7 @@
 # mxnet         1.8.0 (pip)
 # paddle        2.0.0 (pip)
 # pytorch       1.10.0 (pip)
-# tensorflow    2.5.0 (pip)
+# tensorflow    2.5.0 (pip) # ERROR: tensorflow 2.5.0 is incompatible with nvidia/cuda:10.2-cudnn8-devel-ubuntu18.04
 # onnx          1.9.0 (pip)
 # opencv        4.5.2 (git)
 # ==================================================================
