@@ -1,0 +1,180 @@
+################################################################################
+# History:
+# 2020/5/22    Harold    V1    all set
+################################################################################
+
+################################################################################
+# The Dockerfile consists of 3 components:
+#   1. Mainstream deep learning frameworks, refering to https://github.com/ufoym/deepo
+#   2. Ubuntu-vnc-desktop, refering to https://github.com/fcwu/docker-ubuntu-vnc-desktop
+#   3. VScode IDE, refering to https://github.com/gotoeasy/docker-ubuntu-vscode
+################################################################################
+
+#=================================================================================================================================
+# Ubuntu-vnc-desktop
+#=================================================================================================================================
+
+# Built with arch: amd64 flavor: lxde image: ubuntu:18.04
+#
+################################################################################
+# base system
+################################################################################
+FROM ufoym/deepo:all-py36-cu101 as system
+
+
+# Need to comment the below line, otherwise it would lead to apt update failure.
+# RUN sed -i 's#http://archive.ubuntu.com/ubuntu/#mirror://mirrors.ubuntu.com/mirrors.txt#' /etc/apt/sources.list;
+
+
+# built-in packages
+
+# ENV命令在整个容器运行过程中都会生效，所以当你通过BASH和容器进行交互时，如果进行了全局设置那就会出问题
+# ENV DEBIAN_FRONTEND noninteractive
+RUN apt update \
+    && DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends software-properties-common curl apache2-utils \
+    && apt update \
+    && DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends --allow-unauthenticated \
+        supervisor nginx sudo net-tools zenity xz-utils \
+        dbus-x11 x11-utils alsa-utils \
+        mesa-utils libgl1-mesa-dri \
+    && apt autoclean -y \
+    && apt autoremove -y \
+    && rm -rf /var/lib/apt/lists/*
+# install debs error if combine together
+RUN add-apt-repository -y ppa:fcwu-tw/apps \
+    && apt update \
+    && DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends --allow-unauthenticated \
+        xvfb x11vnc=0.9.16-1 \
+        vim-tiny firefox chromium-browser ttf-ubuntu-font-family ttf-wqy-zenhei  \
+    && add-apt-repository -r ppa:fcwu-tw/apps \
+    && apt autoclean -y \
+    && apt autoremove -y \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN apt update \
+    && DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends --allow-unauthenticated \
+        lxde gtk2-engines-murrine gnome-themes-standard gtk2-engines-pixbuf gtk2-engines-murrine arc-theme \
+    && apt autoclean -y \
+    && apt autoremove -y \
+    && rm -rf /var/lib/apt/lists/*
+
+
+# Additional packages require ~600MB
+# libreoffice  pinta language-pack-zh-hant language-pack-gnome-zh-hant firefox-locale-zh-hant libreoffice-l10n-zh-tw
+
+# tini to fix subreap
+ARG TINI_VERSION=v0.18.0
+ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /bin/tini
+RUN chmod +x /bin/tini
+
+# ffmpeg
+RUN apt update \
+    && DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends --allow-unauthenticated \
+        ffmpeg \
+    && rm -rf /var/lib/apt/lists/* \
+    && mkdir /usr/local/ffmpeg \
+    && ln -s /usr/bin/ffmpeg /usr/local/ffmpeg/ffmpeg
+
+# python library
+COPY rootfs/usr/local/lib/web/backend/requirements.txt /tmp/
+RUN apt update \
+    && dpkg-query -W -f='${Package}\n' > /tmp/a.txt \
+    && apt install  -y python-pip python-dev build-essential \
+    && pip install setuptools wheel && pip install -r /tmp/requirements.txt \
+    && dpkg-query -W -f='${Package}\n' > /tmp/b.txt \
+    && apt remove -y `diff --changed-group-format='%>' --unchanged-group-format='' /tmp/a.txt /tmp/b.txt | xargs` \
+    && apt autoclean -y \
+    && apt autoremove -y \
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -rf /var/cache/apt/* /tmp/a.txt /tmp/b.txt
+
+
+################################################################################
+# builder
+################################################################################
+FROM ufoym/deepo:all-py36-cu101 as builder
+
+
+# Need to comment the below line, otherwise it would lead to apt update failure.
+# RUN sed -i 's#http://archive.ubuntu.com/ubuntu/#mirror://mirrors.ubuntu.com/mirrors.txt#' /etc/apt/sources.list;
+
+
+RUN apt update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends curl ca-certificates gnupg patch
+
+# nodejs
+RUN curl -sL https://deb.nodesource.com/setup_12.x | bash - \
+    && DEBIAN_FRONTEND=noninteractive apt install  -y nodejs
+
+# yarn
+RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - \
+    && echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list \
+    && apt update \
+    && DEBIAN_FRONTEND=noninteractive apt install -y yarn
+
+# build frontend
+COPY web /src/web
+RUN cd /src/web \
+    && yarn \
+    && yarn build
+RUN sed -i 's#app/locale/#novnc/app/locale/#' /src/web/dist/static/novnc/app/ui.js
+
+
+################################################################################
+# merge
+################################################################################
+FROM system
+LABEL maintainer="fcwu.tw@gmail.com"
+
+COPY --from=builder /src/web/dist/ /usr/local/lib/web/frontend/
+COPY rootfs /
+RUN ln -sf /usr/local/lib/web/frontend/static/websockify /usr/local/lib/web/frontend/static/novnc/utils/websockify && \
+    chmod +x /usr/local/lib/web/frontend/static/websockify/run
+
+EXPOSE 80
+WORKDIR /root
+ENV HOME=/home/ubuntu \
+    SHELL=/bin/bash
+HEALTHCHECK --interval=30s --timeout=5s CMD curl --fail http://127.0.0.1:6079/api/health
+ENTRYPOINT ["/startup.sh"]
+
+#=================================================================================================================================
+# VScode IDE
+#=================================================================================================================================
+
+RUN apt update \
+    && apt install -y --no-install-recommends \
+    apt-transport-https \
+    gpg 
+
+RUN curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > microsoft.gpg && \
+    mv microsoft.gpg /etc/apt/trusted.gpg.d/microsoft.gpg && \
+    echo "deb [arch=amd64] https://packages.microsoft.com/repos/vscode stable main" > /etc/apt/sources.list.d/vscode.list
+
+RUN apt update && \
+    apt install  -y code
+
+#=================================================================================================================================
+# creat the folder /workspace due to actual needs
+# add README.txt:
+# 
+# 1.The persistent storage path is "/workspace", please always save your data in "/workspace".
+# Otherwise, your data will disappear when this environment is deleted.
+# 2.Module list:
+# python           3.6
+# pytorch          1.5.0
+# tensorflow       2.1.0
+# mxnet            1.6.0
+# keras            2.3.1
+# caffe            1.0.0
+# theano           1.0.4
+# chainer          7.2.0
+# cntk             2.7
+# sonnet           2.0.0
+# lasagne          0.2.dev1
+# onnx             1.6.0
+# opencv           4.1.2
+#=================================================================================================================================
+
+RUN mkdir /workspace && chmod -R a+rwx /workspace
+COPY README.txt /root/
